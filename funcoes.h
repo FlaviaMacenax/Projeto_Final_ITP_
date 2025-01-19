@@ -3,24 +3,45 @@
 
 #include <stdbool.h>
 
-// Constantes
-#define TAM_IDENTIFICADOR 8
-#define LARGURA_PADRAO 3
-#define ALTURA_PADRAO 50
-#define ESPACAMENTO_PADRAO 4
+// Definição de constantes padrão para a manipulação de imagens PBM e códigos de barras
+#define ESPACAMENTO_PADRAO 4 // Espaçamento padrão entre elementos do código de barras
+#define LARGURA_PADRAO 3     // Largura padrão de cada barra no código
+#define ALTURA_PADRAO 50     // Altura padrão da imagem do código de barras
+#define NOME_PADRAO "codigoean8.pbm" // Nome padrão para o arquivo PBM gerado
 
-// Estrutura para armazenar os parâmetros da imagem
+// Estrutura para representar uma imagem PBM
 typedef struct {
-    int largura;
-    int altura;
-    int espacamento;
-    int pixels_por_area;
-} ParametrosImagem;
+    int largura;    // Largura da imagem em pixels
+    int altura;     // Altura da imagem em pixels
+    char **pixels;  // Matriz de pixels da imagem
+} ImagemPBM;
 
-// Funções compartilhadas
-bool validar_identificador(const char *identificador); // Valida o identificador EAN-8
-int calcular_digito_verificador(const char *identificador); // Calcula o dígito verificador
-char *gerar_codigo_barras(const char *identificador, ParametrosImagem parametros); // Gera o código de barras
-bool salvar_imagem_pbm(const char *nome_arquivo, const char *codigo_barras, ParametrosImagem parametros); // Salva a imagem PBM
-char *carregar_imagem_pbm(const char *nome_arquivo, ParametrosImagem *parametros); // Carrega a imagem PBM
-#endif
+/* DECLARAÇÃO DAS FUNÇÕES COMPARTILHADAS */
+
+// Validação de código de barras
+// Função para validar se o código tem o tamanho correto (8 caracteres)
+bool validarTamanho(const char *codigo);
+
+// Função para verificar se o código contém apenas dígitos numéricos
+bool verificarDigitos(const char *codigo);
+
+// Função para verificar a validade do código com base no dígito de controle
+bool verificarCodigo(const char *codigo);
+
+// Função para calcular o dígito de controle do código de barras
+int calcularDigitoControle(const char *codigo);
+
+// Funções de codificação e decodificação
+// Função para codificar um código de barras EAN-8 em formato binário
+void codificarCodigo(const char *codigoOriginal, char *codigoCodificado);
+
+// Função para extrair o código original a partir de um código codificado em binário
+bool extrairCodigoOriginal(const char *codigoCodificado, char *codigoExtraido);
+
+// Função para decodificar segmentos do lado esquerdo do código de barras
+int decodificarL(const char *codigoBinario);
+
+// Função para decodificar segmentos do lado direito do código de barras
+int decodificarR(const char *codigoBinario);
+
+#endif // FUNCOES_H

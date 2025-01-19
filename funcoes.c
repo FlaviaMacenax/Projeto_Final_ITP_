@@ -1,127 +1,131 @@
 
 #include "funcoes.h"
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-// Valida o identificador EAN-8
-bool validar_identificador(const char *identificador) {
-    if (strlen(identificador) != TAM_IDENTIFICADOR) return false;
-    for (int i = 0; i < TAM_IDENTIFICADOR; i++) {
-        if (!isdigit(identificador[i])) return false;
-    }
-    int digito_verificador = calcular_digito_verificador(identificador);
-    return digito_verificador == (identificador[TAM_IDENTIFICADOR - 1] - '0');
+// Arrays para representar a codificação dos dígitos
+// CODIFICACAO_L: Representa os dígitos 0-9 para o lado esquerdo do código de barras
+const char *CODIFICACAO_L[] = {"0001101", "0011001", "0010011", "0111101", "0100011", 
+                                  "0110001", "0101111", "0111011", "0110111", "0001011"};
+
+// CODIFICACAO_R: Representa os dígitos 0-9 para o lado direito do código de barras
+const char *CODIFICACAO_R[] = {"1110010", "1100110", "1101100", "1000010", "1011100", 
+                                  "1001110", "1010000", "1000100", "1001000", "1110100"};
+
+// Verifica se o código possui exatamente 8 caracteres
+bool validarTamanho(const char *codigo) {
+    int comprimento = strlen(codigo);
+    return (comprimento == 8);
 }
 
-// Calcula o dígito verificador do identificador
-int calcular_digito_verificador(const char *identificador) {
-    int soma = 0;
-    for (int i = 0; i < TAM_IDENTIFICADOR - 1; i++) {
-        int peso = (i % 2 == 0) ? 3 : 1;
-        soma += (identificador[i] - '0') * peso;
-    }
-    int resto = soma % 10;
-    return (resto == 0) ? 0 : 10 - resto;
-}
-
-// Gera o código de barras a partir do identificador
-char *gerar_codigo_barras(const char *identificador, ParametrosImagem parametros) {
-    // Aloca espaço para o código de barras (101 + L/R codes + marcadores)
-    int largura_total = parametros.espacamento * 2 + 67 * parametros.pixels_por_area;
-    char *codigo_barras = (char *)malloc(largura_total + 1);
-    if (!codigo_barras) return NULL;
-
-    // Monta o código: Marcador inicial
-    strcpy(codigo_barras, "101");
-
-    // Codifica os 4 primeiros dígitos (L-code)
-    const char *l_code[] = {"0001101", "0011001", "0010011", "0111101", "0100011", "0110001", "0101111", "0111011", "0110111", "0001011"};
-    for (int i = 0; i < 4; i++) {
-        strcat(codigo_barras, l_code[identificador[i] - '0']);
-    }
-
-    // Marcador central
-    strcat(codigo_barras, "01010");
-
-    // Codifica os 4 últimos dígitos (R-code)
-    const char *r_code[] = {"1110010", "1100110", "1101100", "1000010", "1011100", "1001110", "1010000", "1000100", "1001000", "1110100"};
-    for (int i = 4; i < 8; i++) {
-        strcat(codigo_barras, r_code[identificador[i] - '0']);
-    }
-
-    // Marcador final
-    strcat(codigo_barras, "101");
-    return codigo_barras;
-}
-
-// Salva o código de barras em formato PBM
-bool salvar_imagem_pbm(const char *nome_arquivo, const char *codigo_barras, ParametrosImagem parametros) {
-    FILE *arquivo = fopen(nome_arquivo, "w");
-    if (!arquivo) return false;
-
-    int largura_total = parametros.espacamento * 2 + 67 * parametros.pixels_por_area;
-    int altura_total = parametros.altura;
-
-    // Cabeçalho PBM
-    fprintf(arquivo, "P1\n%d %d\n", largura_total, altura_total);
-
-    // Espaçamento superior
-    for (int i = 0; i < parametros.espacamento; i++) {
-        for (int j = 0; j < largura_total; j++) {
-            fprintf(arquivo, "0 ");
+// Verifica se todos os caracteres do código são dígitos numéricos
+bool verificarDigitos(const char *codigo) {
+    for (int i = 0; codigo[i] != '\0'; i++) {
+        if (!isdigit(codigo[i])) {
+            return false;
         }
-        fprintf(arquivo, "\n");
     }
-
-    // Código de barras
-    for (int i = 0; i < altura_total; i++) {
-        for (int j = 0; j < parametros.espacamento; j++) {
-            fprintf(arquivo, "0 ");
-        }
-        for (int j = 0; j < strlen(codigo_barras); j++) {
-            for (int k = 0; k < parametros.pixels_por_area; k++) {
-                fprintf(arquivo, "%c ", codigo_barras[j]);
-            }
-        }
-        for (int j = 0; j < parametros.espacamento; j++) {
-            fprintf(arquivo, "0 ");
-        }
-        fprintf(arquivo, "\n");
-    }
-
-    fclose(arquivo);
     return true;
 }
 
-// Carrega a imagem PBM
-char *carregar_imagem_pbm(const char *nome_arquivo, ParametrosImagem *parametros) {
-    FILE *arquivo = fopen(nome_arquivo, "r");
-    if (!arquivo) return NULL;
+// Calcula o dígito de controle do código de barras
+// Usando a regra de multiplicar posições ímpares por 3 e pares por 1
+int calcularDigitoControle(const char *codigo) {
+    int somaTotal = 0;
+    for (int i = 0; i < 7; i++) {
+        int valorDigito = codigo[i] - '0';
+        somaTotal += (i % 2 == 0) ? valorDigito * 3 : valorDigito;
+    }
+    int modulo = somaTotal % 10;
+    return (modulo == 0) ? 0 : 10 - modulo;
+}
 
-    // Lê o cabeçalho
-    char tipo[3];
-    fscanf(arquivo, "%s", tipo);
-    if (strcmp(tipo, "P1") != 0) {
-        fclose(arquivo);
-        return NULL;
+// Verifica se o código de barras é válido
+// Realiza a validação de tamanho, dígitos e dígito de controle
+bool verificarCodigo(const char *codigo) {
+    if (!verificarDigitos(codigo) || !validarTamanho(codigo)) {
+        return false;
+    }
+    int digitoCalculado = calcularDigitoControle(codigo);
+    int ultimoDigito = codigo[7] - '0';
+    return (ultimoDigito == digitoCalculado);
+}
+
+// Codifica o código de barras em binário usando as tabelas de codificação L e R
+// Adiciona delimitadores iniciais, centrais e finais
+void codificarCodigo(const char *codigoOriginal, char *codigoCodificado) {
+    strcpy(codigoCodificado, "101"); // Delimitador inicial
+    for (int i = 0; i < 4; i++) {
+        strcat(codigoCodificado, CODIFICACAO_L[codigoOriginal[i] - '0']); // Codificação do lado esquerdo
+    }
+    strcat(codigoCodificado, "01010"); // Delimitador central
+    for (int i = 4; i < 8; i++) {
+        strcat(codigoCodificado, CODIFICACAO_R[codigoOriginal[i] - '0']); // Codificação do lado direito
+    }
+    strcat(codigoCodificado, "101"); // Delimitador final
+}
+
+// Decodifica um segmento de 7 bits do lado esquerdo do código de barras
+int decodificarL(const char *codigoBinario) {
+    for (int i = 0; i < 10; i++) {
+        if (strncmp(codigoBinario, CODIFICACAO_L[i], 7) == 0) {
+            return i;
+        }
+    }
+    return -1; // Retorna -1 se o segmento não corresponder a nenhum dígito
+}
+
+// Decodifica um segmento de 7 bits do lado direito do código de barras
+int decodificarR(const char *codigoBinario) {
+    for (int i = 0; i < 10; i++) {
+        if (strncmp(codigoBinario, CODIFICACAO_R[i], 7) == 0) {
+            return i;
+        }
+    }
+    return -1; // Retorna -1 se o segmento não corresponder a nenhum dígito
+}
+
+// Extrai o código original a partir do código codificado em binário
+// Valida os delimitadores e decodifica os lados esquerdo e direito
+bool extrairCodigoOriginal(const char *codigoCodificado, char *codigoExtraido) {
+    if (strlen(codigoCodificado) != 67) {
+        return false;
     }
 
-    fscanf(arquivo, "%d %d", &parametros->largura, &parametros->altura);
+    // Verifica os delimitadores inicial, central e final
+    if (strncmp(codigoCodificado, "101", 3) != 0) return false;
+    if (strncmp(codigoCodificado + 31, "01010", 5) != 0) return false;
+    if (strncmp(codigoCodificado + 64, "101", 3) != 0) return false;
 
-    // Aloca memória para o código de barras
-    char *codigo_barras = (char *)malloc(parametros->largura * parametros->altura + 1);
-    if (!codigo_barras) {
-        fclose(arquivo);
-        return NULL;
+    char buffer[8]; // Buffer para armazenar cada segmento de 7 bits
+    int indice = 3; // Índice inicial após o delimitador inicial
+
+    // Decodifica os primeiros 4 dígitos (lado esquerdo)
+    for (int i = 0; i < 4; i++) {
+        strncpy(buffer, codigoCodificado + indice, 7);
+        buffer[7] = '\0';
+        int decodificado = decodificarL(buffer);
+        if (decodificado < 0) return false;
+        codigoExtraido[i] = '0' + decodificado;
+        indice += 7;
     }
 
-    // Lê os dados da imagem
-    for (int i = 0; i < parametros->largura * parametros->altura; i++) {
-        fscanf(arquivo, "%s", &codigo_barras[i]);
+    indice += 5; // Pula o delimitador central
+
+    // Decodifica os últimos 4 dígitos (lado direito)
+    for (int i = 4; i < 8; i++) {
+        strncpy(buffer, codigoCodificado + indice, 7);
+        buffer[7] = '\0';
+        int decodificado = decodificarR(buffer);
+        if (decodificado < 0) return false;
+        codigoExtraido[i] = '0' + decodificado;
+        indice += 7;
     }
-    fclose(arquivo);
-    return codigo_barras;
+
+    codigoExtraido[8] = '\0'; // Finaliza a string do código extraído
+    return true;
 }
 
