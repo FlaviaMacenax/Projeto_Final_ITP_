@@ -4,21 +4,20 @@
 #include <stdbool.h>
 
 // Definição de constantes padrão para a manipulação de imagens PBM e códigos de barras
-#define ESPACAMENTO_PADRAO 4 // Espaçamento padrão entre elementos do código de barras
-#define LARGURA_PADRAO 3     // Largura padrão de cada barra no código
-#define ALTURA_PADRAO 50     // Altura padrão da imagem do código de barras
-#define NOME_PADRAO "codigoean8.pbm" // Nome padrão para o arquivo PBM gerado
+#define ESPACAMENTO_PADRAO 4 // Espaçamento padrão
+#define LARGURA_PADRAO 3     // Largura padrão 
+#define ALTURA_PADRAO 50     // Altura padrão 
+#define NOME_PADRAO "codigoean8.pbm" // Nome padrão 
 
 // Estrutura para representar uma imagem PBM
 typedef struct {
-    int largura;    // Largura da imagem em pixels
-    int altura;     // Altura da imagem em pixels
-    char **pixels;  // Matriz de pixels da imagem
+    int largura;    
+    int altura;     
+    char **pixels;  
 } ImagemPBM;
 
 /* DECLARAÇÃO DAS FUNÇÕES COMPARTILHADAS */
 
-// Validação de código de barras
 // Função para validar se o código tem o tamanho correto (8 caracteres)
 bool validarTamanho(const char *codigo);
 
@@ -31,7 +30,6 @@ bool verificarCodigo(const char *codigo);
 // Função para calcular o dígito de controle do código de barras
 int calcularDigitoControle(const char *codigo);
 
-// Funções de codificação e decodificação
 // Função para codificar um código de barras EAN-8 em formato binário
 void codificarCodigo(const char *codigoOriginal, char *codigoCodificado);
 

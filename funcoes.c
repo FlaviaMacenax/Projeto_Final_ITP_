@@ -32,7 +32,6 @@ bool verificarDigitos(const char *codigo) {
 }
 
 // Calcula o dígito de controle do código de barras
-// Usando a regra de multiplicar posições ímpares por 3 e pares por 1
 int calcularDigitoControle(const char *codigo) {
     int somaTotal = 0;
     for (int i = 0; i < 7; i++) {
@@ -44,7 +43,6 @@ int calcularDigitoControle(const char *codigo) {
 }
 
 // Verifica se o código de barras é válido
-// Realiza a validação de tamanho, dígitos e dígito de controle
 bool verificarCodigo(const char *codigo) {
     if (!verificarDigitos(codigo) || !validarTamanho(codigo)) {
         return false;
@@ -55,15 +53,14 @@ bool verificarCodigo(const char *codigo) {
 }
 
 // Codifica o código de barras em binário usando as tabelas de codificação L e R
-// Adiciona delimitadores iniciais, centrais e finais
 void codificarCodigo(const char *codigoOriginal, char *codigoCodificado) {
     strcpy(codigoCodificado, "101"); // Delimitador inicial
     for (int i = 0; i < 4; i++) {
-        strcat(codigoCodificado, CODIFICACAO_L[codigoOriginal[i] - '0']); // Codificação do lado esquerdo
+        strcat(codigoCodificado, CODIFICACAO_L[codigoOriginal[i] - '0']); 
     }
     strcat(codigoCodificado, "01010"); // Delimitador central
     for (int i = 4; i < 8; i++) {
-        strcat(codigoCodificado, CODIFICACAO_R[codigoOriginal[i] - '0']); // Codificação do lado direito
+        strcat(codigoCodificado, CODIFICACAO_R[codigoOriginal[i] - '0']); 
     }
     strcat(codigoCodificado, "101"); // Delimitador final
 }
@@ -75,7 +72,7 @@ int decodificarL(const char *codigoBinario) {
             return i;
         }
     }
-    return -1; // Retorna -1 se o segmento não corresponder a nenhum dígito
+    return -1; 
 }
 
 // Decodifica um segmento de 7 bits do lado direito do código de barras
@@ -85,23 +82,21 @@ int decodificarR(const char *codigoBinario) {
             return i;
         }
     }
-    return -1; // Retorna -1 se o segmento não corresponder a nenhum dígito
+    return -1; 
 }
 
 // Extrai o código original a partir do código codificado em binário
-// Valida os delimitadores e decodifica os lados esquerdo e direito
 bool extrairCodigoOriginal(const char *codigoCodificado, char *codigoExtraido) {
     if (strlen(codigoCodificado) != 67) {
         return false;
     }
 
-    // Verifica os delimitadores inicial, central e final
     if (strncmp(codigoCodificado, "101", 3) != 0) return false;
     if (strncmp(codigoCodificado + 31, "01010", 5) != 0) return false;
     if (strncmp(codigoCodificado + 64, "101", 3) != 0) return false;
 
-    char buffer[8]; // Buffer para armazenar cada segmento de 7 bits
-    int indice = 3; // Índice inicial após o delimitador inicial
+    char buffer[8]; 
+    int indice = 3; 
 
     // Decodifica os primeiros 4 dígitos (lado esquerdo)
     for (int i = 0; i < 4; i++) {
@@ -113,7 +108,7 @@ bool extrairCodigoOriginal(const char *codigoCodificado, char *codigoExtraido) {
         indice += 7;
     }
 
-    indice += 5; // Pula o delimitador central
+    indice += 5; 
 
     // Decodifica os últimos 4 dígitos (lado direito)
     for (int i = 4; i < 8; i++) {
@@ -125,7 +120,7 @@ bool extrairCodigoOriginal(const char *codigoCodificado, char *codigoExtraido) {
         indice += 7;
     }
 
-    codigoExtraido[8] = '\0'; // Finaliza a string do código extraído
+    codigoExtraido[8] = '\0'; 
     return true;
 }
 

@@ -7,19 +7,17 @@
 
 // Estrutura para encapsular o resultado do carregamento da imagem
 typedef struct {
-    ImagemPBM *imagem; // Ponteiro para a imagem carregada
-    bool sucesso;      // Indica se o carregamento foi bem-sucedido
+    ImagemPBM *imagem; 
+    bool sucesso;      
 } ResultadoCarregamento;
 
 // Função para carregar o cabeçalho de um arquivo PBM
 bool carregarCabecalhoPBM(FILE *arquivo, int *largura, int *altura) {
     char tipoArquivo[3];
-    // Lê o tipo do arquivo e verifica se é um arquivo PBM válido
     if (fscanf(arquivo, "%2s", tipoArquivo) != 1 || strcmp(tipoArquivo, "P1") != 0) {
         fprintf(stderr, "Erro: formato PBM inválido ou não suportado.\n");
         return false;
     }
-    // Lê as dimensões da imagem (largura e altura)
     if (fscanf(arquivo, "%d %d", largura, altura) != 2) {
         fprintf(stderr, "Erro ao ler dimensões da imagem.\n");
         return false;
@@ -29,16 +27,13 @@ bool carregarCabecalhoPBM(FILE *arquivo, int *largura, int *altura) {
 
 // Função para carregar os pixels de uma imagem PBM
 bool carregarPixelsPBM(FILE *arquivo, ImagemPBM *imagem) {
-    // Itera sobre as linhas e colunas da imagem
     for (int i = 0; i < imagem->altura; i++) {
         for (int j = 0; j < imagem->largura; j++) {
             int pixel;
-            // Lê o valor do pixel (0 ou 1) do arquivo
             if (fscanf(arquivo, "%d", &pixel) != 1) {
                 fprintf(stderr, "Erro ao ler pixels da imagem.\n");
                 return false;
             }
-            // Armazena o pixel no array de pixels
             imagem->pixels[i * imagem->largura + j] = pixel;
         }
     }
@@ -47,7 +42,6 @@ bool carregarPixelsPBM(FILE *arquivo, ImagemPBM *imagem) {
 
 // Função principal para carregar uma imagem PBM de um arquivo
 ResultadoCarregamento carregarImagemPBM(const char *caminhoArquivo) {
-    // Abre o arquivo PBM para leitura
     FILE *arquivo = fopen(caminhoArquivo, "r");
     if (!arquivo) {
         fprintf(stderr, "Erro ao abrir o arquivo PBM: %s\n", caminhoArquivo);
@@ -55,13 +49,11 @@ ResultadoCarregamento carregarImagemPBM(const char *caminhoArquivo) {
     }
 
     int largura, altura;
-    // Carrega o cabeçalho do arquivo PBM
     if (!carregarCabecalhoPBM(arquivo, &largura, &altura)) {
         fclose(arquivo);
         return (ResultadoCarregamento){.imagem = NULL, .sucesso = false};
     }
 
-    // Aloca memória para a estrutura da imagem
     ImagemPBM *imagem = malloc(sizeof(ImagemPBM));
     if (!imagem) {
         fprintf(stderr, "Erro: falha ao alocar memória para a imagem.\n");
@@ -69,10 +61,8 @@ ResultadoCarregamento carregarImagemPBM(const char *caminhoArquivo) {
         return (ResultadoCarregamento){.imagem = NULL, .sucesso = false};
     }
 
-    // Inicializa as dimensões da imagem
     imagem->largura = largura;
     imagem->altura = altura;
-    // Aloca memória para os pixels da imagem
     imagem->pixels = malloc(largura * altura * sizeof(int));
     if (!imagem->pixels) {
         fprintf(stderr, "Erro: falha ao alocar memória para os pixels.\n");
@@ -81,7 +71,6 @@ ResultadoCarregamento carregarImagemPBM(const char *caminhoArquivo) {
         return (ResultadoCarregamento){.imagem = NULL, .sucesso = false};
     }
 
-    // Carrega os pixels do arquivo PBM
     if (!carregarPixelsPBM(arquivo, imagem)) {
         free(imagem->pixels);
         free(imagem);
@@ -89,36 +78,32 @@ ResultadoCarregamento carregarImagemPBM(const char *caminhoArquivo) {
         return (ResultadoCarregamento){.imagem = NULL, .sucesso = false};
     }
 
-    // Fecha o arquivo e retorna a estrutura com a imagem carregada
     fclose(arquivo);
     return (ResultadoCarregamento){.imagem = imagem, .sucesso = true};
 }
 
 // Função para extrair os bits de uma linha da imagem, representando o código de barras
 void extrairBitsLinha(const ImagemPBM *imagem, int linha, int inicio, int larguraColuna, char *bitsCodificados) {
-    // Itera sobre os 67 bits (tamanho padrão de um código de barras EAN-8)
     for (int bit = 0; bit < 67; bit++) {
-        int contagemPreto = 0; // Conta o número de pixels pretos na área
+        int contagemPreto = 0; 
         for (int deslocamento = 0; deslocamento < larguraColuna; deslocamento++) {
-            int posX = inicio + bit * larguraColuna + deslocamento; // Posição do pixel na linha
-            int indicePixel = linha * imagem->largura + posX; // Índice do pixel no array de pixels
+            int posX = inicio + bit * larguraColuna + deslocamento; 
+            int indicePixel = linha * imagem->largura + posX; 
             if (imagem->pixels[indicePixel] == 1) {
-                contagemPreto++; // Incrementa se o pixel for preto
+                contagemPreto++; 
             }
         }
-        // Define o bit como '1' ou '0' dependendo da proporção de pixels pretos
         bitsCodificados[bit] = (contagemPreto > (larguraColuna / 2)) ? '1' : '0';
     }
-    bitsCodificados[67] = '\0'; // Finaliza a string de bits
+    bitsCodificados[67] = '\0'; 
 }
 
 // Função para localizar o código de barras em uma imagem
 bool localizarCodigoBarras(const ImagemPBM *imagem, char *codigoExtraido) {
-    // Testa diferentes larguras de coluna para localizar o padrão
     for (int larguraColuna = 1; larguraColuna <= 80; larguraColuna++) {
-        int larguraPadrao = 67 * larguraColuna; // Largura total do padrão do código de barras
+        int larguraPadrao = 67 * larguraColuna; 
         if (larguraPadrao > imagem->largura) {
-            break; // Se o padrão for maior que a largura da imagem, interrompe o loop
+            break; 
         }
 
         // Varre todas as linhas e posições iniciais possíveis
@@ -138,7 +123,7 @@ bool localizarCodigoBarras(const ImagemPBM *imagem, char *codigoExtraido) {
             }
         }
     }
-    return false; // Retorna false se o código de barras não for encontrado
+    return false; 
 }
 
 // Função principal
@@ -150,7 +135,6 @@ int main(int argc, char *argv[]) {
     }
 
     const char *nomeArquivo = argv[1];
-    // Carrega a imagem PBM
     ResultadoCarregamento resultado = carregarImagemPBM(nomeArquivo);
     if (!resultado.sucesso) {
         fprintf(stderr, "Erro: não foi possível carregar a imagem PBM.\n");
@@ -171,7 +155,6 @@ int main(int argc, char *argv[]) {
     // Exibe o código de barras extraído
     printf("Código de barras extraído: %s\n", codigoExtraido);
 
-    // Libera a memória alocada para a imagem
     free(imagem->pixels);
     free(imagem);
     return EXIT_SUCCESS;
